@@ -1,0 +1,45 @@
+# ROS 2 generated files
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+venv/
+.venv/
+
+# Large datasets
+data/raw/*.npy
+data/raw_buggy_backup/*.npy
+data/dagger/*.npy
+data/processed/backups/
+data/processed/dataset.npz
+
+# Trained models
+models/*.pt
+models/*.pth
+models/*.onnx
+
+# Backups
+backups_full/
+*.bak
+
+# Temporary / generated files
+*.tmp
+*.swp
+
+# IDE
+.vscode/
+
+# ROS bags
+*.bag
+*.db3
+# Old Git history
+.git_old/
+config/nav2_params.yaml
+results/evaluation_v1_ancien_critere.csv
+ros2_ws/src/nav2_comparison/

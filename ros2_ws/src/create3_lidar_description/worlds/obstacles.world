@@ -1,0 +1,178 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <world name="default">
+    <include><uri>model://sun</uri></include>
+    <include><uri>model://ground_plane</uri></include>
+
+    <!-- ===================== MURS EXTERIEURS (forme en L) ===================== -->
+    <model name="wall_south">
+      <static>true</static>
+      <pose>3 -2.5 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>8 0.2 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>8 0.2 1</size></box></geometry></visual>
+      </link>
+    </model>
+
+    <model name="wall_north_short">
+      <static>true</static>
+      <pose>3 2.5 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>8 0.2 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>8 0.2 1</size></box></geometry></visual>
+      </link>
+    </model>
+
+    <model name="wall_west">
+      <static>true</static>
+      <pose>-1 0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 5 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.2 5 1</size></box></geometry></visual>
+      </link>
+    </model>
+
+    <model name="wall_east">
+      <static>true</static>
+      <pose>7 -1 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 3 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.2 3 1</size></box></geometry></visual>
+      </link>
+    </model>
+
+    <model name="wall_east_upper">
+      <static>true</static>
+      <pose>7 1.5 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 2 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.2 2 1</size></box></geometry></visual>
+      </link>
+    </model>
+
+    <model name="wall_middle_divider">
+      <static>true</static>
+      <pose>4 0.5 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 4 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.2 4 1</size></box></geometry></visual>
+      </link>
+    </model>
+
+    <!-- ===================== OBSTACLES INTERIEURS ===================== -->
+    <model name="box_obstacle_1">
+      <static>true</static>
+      <pose>2 1 0.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.5 0.5 0.5</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.5 0.5 0.5</size></box></geometry></visual>
+      </link>
+    </model>
+
+    <model name="cylinder_obstacle_1">
+      <static>true</static>
+      <pose>1 -1.2 0.4 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><cylinder><radius>0.3</radius><length>0.8</length></cylinder></geometry></collision>
+        <visual name="visual"><geometry><cylinder><radius>0.3</radius><length>0.8</length></cylinder></geometry></visual>
+      </link>
+    </model>
+
+    <model name="box_obstacle_2">
+      <static>true</static>
+      <pose>5.5 -1.5 0.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.6 0.6 0.5</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.6 0.6 0.5</size></box></geometry></visual>
+      </link>
+    </model>
+
+    <!-- ===================== MARQUEUR DU POINT D'ARRIVEE (visuel uniquement) ===================== -->
+    <model name="goal_marker">
+      <static>true</static>
+      <pose>6.5 -2.0 0.02 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>0.04</length></cylinder></geometry>
+          <material>
+            <ambient>0 1 0 1</ambient>
+            <diffuse>0 1 0 1</diffuse>
+          </material>
+        </visual>
+        <!-- Pas de balise <collision> : le robot peut passer dessus sans collision -->
+      </link>
+    </model>
+
+
+    <model name="goal_marker_g1">
+      <static>true</static>
+      <pose>5.5 1.5 0.02 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><cylinder><radius>0.2</radius><length>0.04</length></cylinder></geometry>
+          <material>
+            <ambient>1 0.5 0 1</ambient>
+            <diffuse>1 0.5 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="goal_marker_g2">
+      <static>true</static>
+      <pose>6.5 -2.0 0.02 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><cylinder><radius>0.2</radius><length>0.04</length></cylinder></geometry>
+          <material>
+            <ambient>0 1 0 1</ambient>
+            <diffuse>0 1 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="goal_marker_g3">
+      <static>true</static>
+      <pose>1.0 2.0 0.02 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><cylinder><radius>0.2</radius><length>0.04</length></cylinder></geometry>
+          <material>
+            <ambient>1 0 1 1</ambient>
+            <diffuse>1 0 1 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="goal_marker_g4">
+      <static>true</static>
+      <pose>6.0 0.0 0.02 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><cylinder><radius>0.2</radius><length>0.04</length></cylinder></geometry>
+          <material>
+            <ambient>0 1 1 1</ambient>
+            <diffuse>0 1 1 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="goal_marker_g5">
+      <static>true</static>
+      <pose>0.5 -2.0 0.02 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><cylinder><radius>0.2</radius><length>0.04</length></cylinder></geometry>
+          <material>
+            <ambient>1 1 0 1</ambient>
+            <diffuse>1 1 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>

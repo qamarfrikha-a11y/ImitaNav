@@ -1,0 +1,13 @@
+=== Resume de l'evaluation quantitative ===
+
+Nombre d'essais              : 1
+Taux de reussite             : 0/1 (0.0%)
+Essais avec collision         : 1/1 (100.0%)
+Essais en timeout             : 1/1 (100.0%)
+
+Temps moyen (tous essais)     : 160.10 s (ecart-type 0.00)
+Longueur moyenne (tous)       : 8.29 m
+Fluidite moyenne (std angular): 0.273 rad/s
+
+Detail par essai :
+  # 1: COLLISION  temps= 160.1s  traj= 8.294m  std_ang=0.2727

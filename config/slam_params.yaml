@@ -1,0 +1,12 @@
+slam_toolbox:
+  ros__parameters:
+    odom_frame: odom
+    map_frame: map
+    base_frame: base_link
+    scan_topic: /scan
+    use_sim_time: true
+    mode: mapping
+    transform_timeout: 1.0
+    tf_buffer_duration: 15.0
+    minimum_time_interval: 0.2
+    transform_publish_period: 0.05
