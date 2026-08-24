@@ -40,6 +40,3 @@ backups_full/
 *.db3
 # Old Git history
 .git_old/
-config/nav2_params.yaml
-results/evaluation_v1_ancien_critere.csv
-ros2_ws/src/nav2_comparison/
