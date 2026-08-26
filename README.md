@@ -12,7 +12,6 @@ navigation autonome.
 - [Résultats](#résultats)
 - [Limites connues](#limites-connues)
 - [Installation et utilisation](#installation-et-utilisation)
-- [Prochaines étapes](#prochaines-étapes)
 
 ## Architecture
 
@@ -180,12 +179,4 @@ ros2 topic pub --once /goal_pose geometry_msgs/msg/PoseStamped \
   "{pose: {position: {x: 6.0, y: 0.0, z: 0.0}}}"
 ```
 
-## Prochaines étapes
 
-- [ ] Comparaison quantitative avec Nav2 sur les 5 mêmes goals
-      (package `nav2_comparison`)
-- [ ] Sur-échantillonnage de G2–G5 pour rééquilibrer le dataset
-      d'entraînement multi-goal
-- [ ] Extension de la détection de sécurité aux collisions latérales
-- [ ] Rédaction de l'analyse comparative finale (BC seul / BC+DAgger / Nav2)
-      pour le rapport de stage
