@@ -24,7 +24,18 @@ LIDAR_DISTANCE_CAP = 10.0
 MAX_LINEAR_SPEED = 0.5
 MAX_ANGULAR_SPEED = 2.0
 MAX_GOAL_DISTANCE = 12.0
-MODEL_PATH = os.path.expanduser('~/stage_imitation_learning/models/bc_model.pt')
+
+SAFETY_DISTANCE = 0.30
+FRONT_CONE_HALF_WIDTH = 3
+STUCK_CYCLES_BEFORE_REVERSE = 15
+REVERSE_LINEAR_SPEED = -0.15
+ESCAPE_ANGULAR_SPEED = 1.0
+ESCAPE_LOCK_CYCLES = 12
+FINAL_APPROACH_DISTANCE = 1.5
+FINAL_APPROACH_LINEAR = 0.25
+FINAL_APPROACH_ANGULAR_GAIN = 1.5
+GOAL_REACHED_THRESHOLD = 0.5
+MODEL_PATH = os.path.expanduser(os.environ.get('BC_MODEL_PATH', '~/stage_imitation_learning/models/bc_model.pt'))
 
 GOAL_X = 6.5
 GOAL_Y = -2.0
@@ -66,6 +77,14 @@ class BCInferenceNode(Node):
         self.scan_ranges = [1.0] * NUM_SCAN_SAMPLES
         self.prev_linear = 0.0
         self.prev_angular = 0.0
+        self.gt_x = 0.0
+        self.gt_y = 0.0
+        self.gt_distance = 0.0
+        self.gt_received = False
+        self.stuck_cycles = 0
+        self.safety_triggers = 0
+        self.escape_direction = 0.0
+        self.escape_lock_remaining = 0
 
         self.device = torch.device('cpu')
         self.model = BCPolicy().to(self.device)
@@ -75,6 +94,8 @@ class BCInferenceNode(Node):
 
         qos = QoSProfile(depth=10)
         self.odom_sub = self.create_subscription(Odometry, '/odom', self.odom_callback, qos)
+        self.gt_sub = self.create_subscription(
+            Odometry, '/sim_ground_truth_pose', self.ground_truth_callback, qos)
         self.scan_sub = self.create_subscription(
             LaserScan, '/scan', self.scan_callback, qos_profile=qos_profile_sensor_data)
         self.goal_sub = self.create_subscription(
@@ -124,21 +145,82 @@ class BCInferenceNode(Node):
         obs.append(float(np.clip(self.prev_angular / MAX_ANGULAR_SPEED, -1, 1)))
         return np.array(obs, dtype=np.float32)
 
+    def ground_truth_callback(self, msg):
+        self.gt_x = msg.pose.pose.position.x
+        self.gt_y = msg.pose.pose.position.y
+        diff_x = GOAL_X - self.gt_x
+        diff_y = GOAL_Y - self.gt_y
+        self.gt_distance = math.sqrt(diff_x ** 2 + diff_y ** 2)
+        self.gt_received = True
+
+    def final_approach_action(self):
+        angular = float(np.clip(FINAL_APPROACH_ANGULAR_GAIN * self.goal_angle,
+                                 -MAX_ANGULAR_SPEED, MAX_ANGULAR_SPEED))
+        if abs(self.goal_angle) > 0.5:
+            linear = 0.0
+        else:
+            linear = FINAL_APPROACH_LINEAR
+        return linear, angular
+
+    def safety_filter(self, linear, angular):
+        n = len(self.scan_ranges)
+        center = n // 2
+        front_indices = list(range(
+            max(0, center - FRONT_CONE_HALF_WIDTH),
+            min(n, center + FRONT_CONE_HALF_WIDTH + 1)
+        ))
+        front_min_normalized = min(self.scan_ranges[i] for i in front_indices)
+        front_min_meters = front_min_normalized * LIDAR_DISTANCE_CAP
+
+        obstacle_ahead = front_min_meters < SAFETY_DISTANCE
+
+        if obstacle_ahead and linear > 0:
+            self.safety_triggers += 1
+            self.stuck_cycles += 1
+
+            if self.escape_lock_remaining <= 0:
+                right_indices = front_indices[:len(front_indices) // 2 + 1]
+                left_indices = front_indices[len(front_indices) // 2:]
+                min_right = min(self.scan_ranges[i] for i in right_indices)
+                min_left = min(self.scan_ranges[i] for i in left_indices)
+                self.escape_direction = 1.0 if min_left > min_right else -1.0
+                self.escape_lock_remaining = ESCAPE_LOCK_CYCLES
+
+            angular = self.escape_direction * ESCAPE_ANGULAR_SPEED
+            self.escape_lock_remaining -= 1
+
+            if self.stuck_cycles > STUCK_CYCLES_BEFORE_REVERSE:
+                linear = REVERSE_LINEAR_SPEED
+            else:
+                linear = 0.0
+        else:
+            self.stuck_cycles = 0
+            self.escape_lock_remaining = 0
+
+        return linear, angular
+
     def control_step(self):
         if not self.odom_received:
             return
-        if self.goal_distance < 0.3:
+
+        if self.gt_received and self.gt_distance < GOAL_REACHED_THRESHOLD:
             self.publish_cmd(0.0, 0.0)
             self.get_logger().info("Objectif atteint, arret.", throttle_duration_sec=2.0)
             return
 
         obs = self.build_observation()
-        with torch.no_grad():
-            x = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
-            action = self.model(x).squeeze(0).numpy()
 
-        linear = float(np.clip(action[0], -MAX_LINEAR_SPEED, MAX_LINEAR_SPEED))
-        angular = float(np.clip(action[1], -MAX_ANGULAR_SPEED, MAX_ANGULAR_SPEED))
+        ref_distance = self.gt_distance if self.gt_received else self.goal_distance
+        if ref_distance < FINAL_APPROACH_DISTANCE:
+            linear, angular = self.final_approach_action()
+        else:
+            with torch.no_grad():
+                x = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
+                action = self.model(x).squeeze(0).numpy()
+            linear = float(np.clip(action[0], -MAX_LINEAR_SPEED, MAX_LINEAR_SPEED))
+            angular = float(np.clip(action[1], -MAX_ANGULAR_SPEED, MAX_ANGULAR_SPEED))
+
+        linear, angular = self.safety_filter(linear, angular)
 
         self.publish_cmd(linear, angular)
         self.prev_linear = linear

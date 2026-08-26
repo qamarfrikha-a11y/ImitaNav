@@ -11,9 +11,13 @@ import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, random_split
 
+SEED = 42
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
 DATASET_PATH = os.path.expanduser('~/stage_imitation_learning/data/processed/dataset.npz')
 MODEL_DIR = os.path.expanduser('~/stage_imitation_learning/models')
-MODEL_PATH = os.path.join(MODEL_DIR, 'bc_model.pt')
+MODEL_PATH = os.path.join(MODEL_DIR, f'bc_model_seed{SEED}.pt')
 
 INPUT_DIM = 40
 OUTPUT_DIM = 2
