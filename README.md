@@ -1,191 +1,162 @@
-# Imitation Learning pour la Navigation Autonome — Create 3 (ROS 2 / Gazebo)
+# 🚀 Navigation Autonome par Imitation Learning — Multi-Goal
 
-Système de navigation autonome basé sur le Behavioral Cloning (BC) et l'HG-DAgger,
-développé dans le cadre d'un stage sur l'intersection robotique mobile / IA /
-navigation autonome.
+[![ROS2](https://img.shields.io/badge/ROS2-Humble-blue)](https://docs.ros.org/en/humble/)
+[![Gazebo](https://img.shields.io/badge/Gazebo-Classic%2011-green)](https://classic.gazebosim.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-1.10+-orange)](https://pytorch.org/)
+[![Python](https://img.shields.io/badge/Python-3.8+-yellow)](https://www.python.org/)
 
-## Sommaire
+---
 
-- [Architecture](#architecture)
-- [Évolution du projet : du mono-goal au multi-goal](#évolution-du-projet--du-mono-goal-au-multi-goal)
-- [Méthodologie](#méthodologie)
-- [Résultats](#résultats)
-- [Limites connues](#limites-connues)
-- [Installation et utilisation](#installation-et-utilisation)
-- [Prochaines étapes](#prochaines-étapes)
+## 📖 Présentation du projet
 
-## Architecture
+Ce projet implémente un système de **navigation autonome multi-objectif** pour un robot **iRobot Create 3** en utilisant l'**Apprentissage par Imitation (Imitation Learning)**.
 
-- **Simulation** : Gazebo Classic 11, robot iRobot Create 3 équipé d'un LiDAR
-  (36 rayons, cône avant), odométrie, IMU.
-- **Observation (40D)** : 36 valeurs LiDAR normalisées + distance au goal +
-  angle vers le goal + 2 dernières commandes (linéaire, angulaire).
-- **Politique** : MLP (40 → 128 → 64 → 32 → 2), sortie = vitesse linéaire /
-  angulaire.
-- **Package ROS 2** : `create3_il`, nœuds principaux :
-  - `il_data_collector` — collecte de démonstrations par téléopération
-  - `bc_inference_node` — inférence autonome pure (BC)
-  - `dagger_session_node` — session HG-DAgger (auto + corrections humaines)
-  - `eval_trial_node` — évaluation quantitative automatisée d'un essai
+Le robot apprend à naviguer vers **5 objectifs distincts** dans un environnement simulé sous **ROS 2** et **Gazebo**, à partir d'un dataset de démonstrations par Behavioral Cloning, affiné par des sessions interactives de **HG-DAgger** ciblées sur chaque nouvel objectif.
 
-## Évolution du projet : du mono-goal au multi-goal
+![Robot Create 3](media/images/robot_create3.png)
 
-La première version du projet entraînait le modèle BC sur un unique objectif
-fixe `(5.5, 1.5)`. En changeant ce point cible sans réentraînement, le robot
-échouait systématiquement (comportement dégénéré : recul + rotation en
-boucle), révélant que le modèle avait appris à reconnaître la géométrie de la
-pièce plutôt qu'à réellement exploiter le signal `goal_distance` /
-`goal_angle` fourni en entrée — un cas typique de mémorisation plutôt que de
-généralisation, propre au Behavioral Cloning pur.
+### 🎯 Objectifs
 
-Ce constat a motivé le passage à un objectif **multi-goal** : le robot doit
-être capable d'atteindre **5 points cibles distincts** dans le même
-environnement, en combinant :
+1. Apprendre une politique de navigation à partir de démonstrations humaines
+2. Naviguer de manière autonome dans un couloir en L avec obstacles
+3. Généraliser à **5 objectifs différents**, pas un seul point fixe
+4. Mesurer l'apport de HG-DAgger par rapport au Behavioral Cloning seul
 
-1. Un mécanisme de **goal dynamique** (`/goal_pose`, publié à l'exécution,
-   sans recompilation)
-2. Une **collecte de corrections HG-DAgger** pour chaque nouveau goal
-3. Un **réentraînement multi-goal** du modèle sur les données fusionnées
-4. Un **filtre de sécurité réactif** (évitement d'obstacles + arrêt basé sur
-   la position réelle du robot plutôt que sur l'odométrie, sujette à dérive)
+---
 
-## Méthodologie
+## 🏗️ Pipeline global
 
-### Goals évalués
+```mermaid
+flowchart TD
+    A["Simulation Gazebo<br/>Robot Create 3 + LiDAR"] -->|"/scan, /odom"| B["Observation (40D)<br/>36×LiDAR + distance/angle objectif + vitesse"]
+    B --> C["Policy Network (MLP)<br/>40 → 128 → 64 → 32 → 2"]
+    C --> D["Filtre de sécurité<br/>cône frontal + évitement + approche finale"]
+    D -->|"/cmd_vel"| A
 
-| Goal | Coordonnées (x, y) | Pas de démonstration / correction |
-|------|--------------------|-----------------------------------|
-| G1   | (5.5, 1.5)         | 15 978 (dataset original, téléopération complète) |
-| G2   | (6.5, -2.0)        | 176 (HG-DAgger)  |
-| G3   | (1.0, 2.0)         | 74 (HG-DAgger)   |
-| G4   | (6.0, 0.0)         | 197 (HG-DAgger)  |
-| G5   | (0.5, -2.0)        | 54 (HG-DAgger)   |
+    E["Dataset G1<br/>15 978 pas"] --> H["Fusion multi-goal<br/>16 479 pas"]
+    F["HG-DAgger G2-G5<br/>501 pas de corrections"] --> H
+    H --> C
+```
 
-**Total dataset multi-goal : 16 479 pas.**
+---
 
-### Collecte HG-DAgger
+## 📸 Résultats
 
-Pour chaque nouveau goal, le modèle BC roule en autonomie ; l'opérateur reprend
-la main via `teleop_twist_keyboard` (remappé sur `/cmd_vel_manual`) uniquement
-lorsque le robot dérape ou se bloque. Chaque pas de correction est enregistré
-`(observation, action_corrigée)` et vient enrichir le dataset d'entraînement.
-Chaque session est validée après coup en vérifiant que la distance au goal
-décroît de façon cohérente sur toute la trajectoire (pas de saut brutal
-révélant un changement de goal accidentel en cours de session).
+### Simulation : départ et arrivée
 
-### Entraînement
+![Départ](media/images/simulation_start.png) ![Arrivée](media/images/simulation_goal.png)
 
-Le modèle multi-goal est réentraîné **from scratch** (et non par
-fine-tuning) sur l'ensemble fusionné G1–G5, avec une seed fixée
-(reproductibilité) et un split train/validation 85/15 :
+### Courbe d'apprentissage (modèle multi-goal)
 
-![Courbe d'entraînement](report_assets/training_curve.png)
+![Courbe d'entraînement](media/images/training_curve.png)
 
-*Meilleure val_loss : 0.031 (early stopping, epoch 121/150).*
+### Taux de réussite par objectif
 
-Le choix "from scratch" plutôt que "fine-tuning" a été motivé par le
-risque de biais résiduel : repartir des poids du modèle G1-seul aurait
-probablement transféré sa tendance à mémoriser la trajectoire vers un seul
-point.
+![Taux de réussite par goal](media/images/success_rate_by_goal.png)
 
-### Filtre de sécurité
+| Goal | Coordonnées | Pas DAgger | Essais | Taux de réussite |
+|------|-------------|------------|--------|-------------------|
+| G1   | (5.5, 1.5)  | — (dataset initial) | 10 | 70.0 % |
+| G2   | (6.5, -2.0) | 176 | 6 | 50.0 % |
+| G3   | (1.0, 2.0)  | 74  | 7 | 85.7 % |
+| G4   | (6.0, 0.0)  | 197 | 6 | 66.7 % |
+| G5   | (0.5, -2.0) | 54  | 7 | **100.0 %** |
+| **Moyenne** | — | — | **36** | **75.0 %** |
 
-Un filtre réactif (`safety_filter`), porté depuis `eval_trial_node.py` vers
-les nœuds d'inférence en direct, coupe la vitesse linéaire et déclenche une
-manœuvre d'évitement (rotation, puis marche arrière si blocage prolongé)
-lorsqu'un obstacle est détecté à moins de 30 cm dans un cône frontal étroit.
-Une phase d'**approche finale** (`final_approach_action`) prend le relais du
-modèle BC dans le dernier mètre et demi avant le goal, pour un arrêt plus
-précis et stable.
+### Impact de HG-DAgger (Baseline vs Multi-goal, objectif G2)
 
-### Évaluation quantitative automatisée
+![Comparaison BC vs DAgger](media/images/baseline_vs_dagger.png)
 
-Le script `scripts/run_evaluation.sh` automatise N essais indépendants par
-goal : relance complète de Gazebo, vérification active que le
-`controller_manager` répond réellement (pas seulement présence du topic),
-application confirmée de `safety_override=full`, exécution d'un essai
-via `eval_trial_node.py`, puis nettoyage complet (y compris redémarrage du
-daemon ROS 2) avant l'essai suivant. Les essais dont l'infrastructure de
-simulation n'a pas démarré correctement (spawn Gazebo, contrôleur non
-disponible) sont détectés et exclus automatiquement du calcul de taux de
-réussite, pour ne pas polluer les résultats avec du bruit d'infrastructure.
-
-## Résultats
-
-### Taux de réussite par goal (modèle multi-goal, 6 à 10 essais par goal)
-
-![Taux de réussite par goal](report_assets/success_rate_by_goal.png)
-
-| Goal | Essais valides | Réussite |
-|------|-----------------|----------|
-| G1   | 10 | 7/10 (70.0 %) |
-| G2   | 6  | 3/6 (50.0 %)  |
-| G3   | 7  | 6/7 (85.7 %)  |
-| G4   | 6  | 4/6 (66.7 %)  |
-| G5   | 7  | 7/7 (100.0 %) |
-| **Moyenne** | **36** | **27/36 (75.0 %)** |
-
-### Impact de HG-DAgger : baseline vs multi-goal (goal G2)
-
-![Baseline vs DAgger](report_assets/baseline_vs_dagger.png)
-
-Le modèle **baseline** (`bc_model_seed42.pt`, entraîné uniquement sur G1,
-jamais exposé à G2 pendant l'entraînement) échoue totalement sur G2 :
-
-| Modèle | Essais | Réussite | Comportement observé |
-|--------|--------|----------|----------------------|
-| Baseline (sans DAgger) | 6 | 0/6 (0 %) | Timeout systématique, errance (15–29 m parcourus, sans collision) |
-| Multi-goal (avec DAgger) | 6 | 3/6 (50 %) | Réussite dans la moitié des essais |
-
-Ce résultat démontre l'apport mesurable de HG-DAgger pour la généralisation
-à de nouveaux objectifs, même avec un volume de corrections limité
-(176 pas, soit ~1 % du dataset total).
+| Modèle | Essais | Taux de réussite | Comportement observé |
+|--------|--------|-------------------|-----------------------|
+| BC seul (jamais vu G2) | 6 | **0 %** | Timeout systématique, errance sans collision |
+| BC + HG-DAgger | 6 | **50 %** | Réussite dans la moitié des essais |
 
 ### Répartition des issues par goal
 
-![Répartition collision/timeout](report_assets/collision_timeout_breakdown.png)
+![Répartition collision/timeout](media/images/collision_timeout_breakdown.png)
 
-## Limites connues
+---
 
-- **Filtre de sécurité réactif et minima locaux** : dans les passages étroits
-  (ex. goulot entre les deux salles de l'environnement), le filtre peut
-  entrer en oscillation (évitement à droite / à gauche en boucle) sans
-  dégager complètement l'obstacle — limite classique des approches
-  purement réactives face à une planification globale (cf. comparaison
-  Nav2 à venir).
-- **Détection frontale uniquement** : le cône de sécurité ne couvre pas les
-  collisions latérales (frôlement en virage), observées sur certains essais
-  malgré `safety_triggers = 0`.
-- **Déséquilibre du dataset multi-goal** : G2–G5 ne représentent que ~3 % du
-  volume total face à G1. Un sur-échantillonnage ciblé de ces goals est une
-  piste d'amélioration identifiée mais non encore mise en œuvre.
-- **Instabilité d'infrastructure (WSL2 + Gazebo Classic)** : environ 20–30 %
-  des lancements automatisés échouent au niveau du spawn / `controller_manager`
-  (indépendamment du modèle), nécessitant les vérifications actives ajoutées
-  au script d'évaluation et un redémarrage périodique de l'environnement WSL2.
+## 🎬 Vidéo de démonstration
 
-## Installation et utilisation
+▶️ [**Navigation multi-goal**](media/videos/multi_goal.mp4)
+▶️ [**Démonstration initiale (mono-goal)**](media/videos/demo_navigation.mp4)
 
-Voir les scripts dans `scripts/` :
-- `train_bc.py` — entraînement BC mono-goal (baseline, from scratch)
-- `train_bc_multigoal.py` — entraînement multi-goal (fusion G1 + corrections DAgger)
-- `run_evaluation.sh <n_essais> <goal>` — évaluation quantitative automatisée
-- `summarize_evaluation.py <csv>` — résumé des résultats d'un CSV d'évaluation
-- `generate_report_charts.py` — régénère les graphiques de ce README à partir
-  des logs d'entraînement et des CSV de résultats
+---
 
-Pour changer de goal dynamiquement sans recompiler :
+## ⚠️ Limites connues
+
+- **Minima locaux** : le filtre de sécurité réactif peut osciller dans les passages étroits sans dégager complètement l'obstacle.
+- **Détection frontale uniquement** : les collisions latérales en virage ne sont pas couvertes par le cône de sécurité actuel.
+- **Déséquilibre du dataset** : G2–G5 ne représentent que ~3 % du volume total face à G1 (piste de sur-échantillonnage identifiée, non testée).
+- **Instabilité d'infrastructure (WSL2 + Gazebo Classic)** : ~20–30 % des lancements automatisés échouent au spawn, indépendamment du modèle ; exclus automatiquement du calcul des taux de réussite ci-dessus.
+
+---
+
+## 🏗️ Structure du projet
+ImitaNav/
+├── ros2_ws/src/
+│ ├── create3_il/ # Package ROS 2 : collecte, entrainement, eval
+│ └── create3_lidar_description/ # Create 3 + LiDAR (URDF/SDF)
+├── config/
+├── data/
+│ ├── processed/dataset.npz # Dataset G1 original
+│ └── dagger/ # Corrections HG-DAgger par goal (G2-G5)
+├── models/
+│ ├── bc_model_seed42.pt # Modele baseline (G1 seul)
+│ └── bc_model_multigoal_seed42.pt # Modele multi-goal (G1 + DAgger G2-G5)
+├── results/
+│ └── evaluation_G*.csv # Resultats detailles par goal
+├── scripts/
+│ ├── train_bc.py # Entrainement mono-goal
+│ ├── train_bc_multigoal.py # Entrainement multi-goal (fusion)
+│ ├── run_evaluation.sh # Evaluation quantitative automatisee
+│ ├── summarize_evaluation.py
+│ └── generate_report_charts.py # Regenere les graphiques de ce README
+├── media/images/ # Figures utilisees dans ce README
+├── media/videos/
+├── .gitignore
+└── README.md
+
+
+---
+
+## 🚀 Installation
+
+**Prérequis** : Ubuntu 22.04, ROS 2 Humble, Gazebo Classic 11, Python 3.8+, PyTorch (CPU)
+
+```bash
+git clone https://github.com/qamarfrikha-a11y/ImitaNav.git
+cd ImitaNav/ros2_ws
+colcon build
+source install/setup.bash
+```
+
+### Changer d'objectif dynamiquement (sans recompilation)
+
 ```bash
 ros2 topic pub --once /goal_pose geometry_msgs/msg/PoseStamped \
   "{pose: {position: {x: 6.0, y: 0.0, z: 0.0}}}"
 ```
 
-## Prochaines étapes
+### Entraînement
 
-- [ ] Comparaison quantitative avec Nav2 sur les 5 mêmes goals
-      (package `nav2_comparison`)
-- [ ] Sur-échantillonnage de G2–G5 pour rééquilibrer le dataset
-      d'entraînement multi-goal
-- [ ] Extension de la détection de sécurité aux collisions latérales
-- [ ] Rédaction de l'analyse comparative finale (BC seul / BC+DAgger / Nav2)
-      pour le rapport de stage
+```bash
+python3 scripts/train_bc.py             # mono-goal (baseline)
+python3 scripts/train_bc_multigoal.py    # multi-goal (G1 + DAgger)
+```
+
+### Évaluation quantitative
+
+```bash
+ros2 param set /motion_control safety_override full
+./scripts/run_evaluation.sh 10 G1        # repeter pour G2 G3 G4 G5
+python3 scripts/summarize_evaluation.py results/evaluation_G1.csv
+```
+
+---
+
+## Remerciements
+
+Structure de dépôt inspirée de [tomasvr/turtlebot3_drlnav](https://github.com/tomasvr/turtlebot3_drlnav).
