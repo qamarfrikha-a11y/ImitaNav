@@ -13,7 +13,7 @@ Ce projet implémente un système de **navigation autonome multi-objectif** pour
 
 Le robot apprend à naviguer vers **5 objectifs distincts** dans un environnement simulé sous **ROS 2** et **Gazebo**, à partir d'un dataset de démonstrations par Behavioral Cloning, affiné par des sessions interactives de **HG-DAgger** ciblées sur chaque nouvel objectif.
 
-![Robot Create 3](media/images/robot_create3.png)
+<img src="media/images/robot_create3.png" width="350" alt="Robot Create 3"/>
 
 ### 🎯 Objectifs
 
@@ -28,12 +28,12 @@ Le robot apprend à naviguer vers **5 objectifs distincts** dans un environnemen
 
 ```mermaid
 flowchart TD
-    A["Simulation Gazebo<br/>Robot Create 3 + LiDAR"] -->|"/scan, /odom"| B["Observation (40D)<br/>36×LiDAR + distance/angle objectif + vitesse"]
-    B --> C["Policy Network (MLP)<br/>40 → 128 → 64 → 32 → 2"]
-    C --> D["Filtre de sécurité<br/>cône frontal + évitement + approche finale"]
+    A["Simulation Gazebo<br/>Robot Create 3 + LiDAR"] -->|"/scan, /odom"| B["Observation 40D<br/>36xLiDAR + distance/angle objectif + vitesse"]
+    B --> C["Policy Network MLP<br/>40 to 128 to 64 to 32 to 2"]
+    C --> D["Filtre de securite<br/>cone frontal + evitement + approche finale"]
     D -->|"/cmd_vel"| A
 
-    E["Dataset G1<br/>15 978 pas"] --> H["Fusion multi-goal<br/>16 479 pas"]
+    E["Dataset G1<br/>15978 pas"] --> H["Fusion multi-goal<br/>16479 pas"]
     F["HG-DAgger G2-G5<br/>501 pas de corrections"] --> H
     H --> C
 ```
@@ -42,17 +42,13 @@ flowchart TD
 
 ## 📸 Résultats
 
-### Simulation : départ et arrivée
-
-![Départ](media/images/simulation_start.png) ![Arrivée](media/images/simulation_goal.png)
-
 ### Courbe d'apprentissage (modèle multi-goal)
 
-![Courbe d'entraînement](media/images/training_curve.png)
+<img src="media/images/training_curve.png" width="500" alt="Courbe d'entrainement"/>
 
 ### Taux de réussite par objectif
 
-![Taux de réussite par goal](media/images/success_rate_by_goal.png)
+<img src="media/images/success_rate_by_goal.png" width="500" alt="Taux de reussite par goal"/>
 
 | Goal | Coordonnées | Pas DAgger | Essais | Taux de réussite |
 |------|-------------|------------|--------|-------------------|
@@ -65,7 +61,7 @@ flowchart TD
 
 ### Impact de HG-DAgger (Baseline vs Multi-goal, objectif G2)
 
-![Comparaison BC vs DAgger](media/images/baseline_vs_dagger.png)
+<img src="media/images/baseline_vs_dagger.png" width="400" alt="Baseline vs DAgger"/>
 
 | Modèle | Essais | Taux de réussite | Comportement observé |
 |--------|--------|-------------------|-----------------------|
@@ -74,14 +70,13 @@ flowchart TD
 
 ### Répartition des issues par goal
 
-![Répartition collision/timeout](media/images/collision_timeout_breakdown.png)
+<img src="media/images/collision_timeout_breakdown.png" width="500" alt="Repartition collision/timeout"/>
 
 ---
 
 ## 🎬 Vidéo de démonstration
 
 ▶️ [**Navigation multi-goal**](media/videos/multi_goal.mp4)
-▶️ [**Démonstration initiale (mono-goal)**](media/videos/demo_navigation.mp4)
 
 ---
 
@@ -95,30 +90,32 @@ flowchart TD
 ---
 
 ## 🏗️ Structure du projet
-ImitaNav/
-├── ros2_ws/src/
-│ ├── create3_il/ # Package ROS 2 : collecte, entrainement, eval
-│ └── create3_lidar_description/ # Create 3 + LiDAR (URDF/SDF)
-├── config/
-├── data/
-│ ├── processed/dataset.npz # Dataset G1 original
-│ └── dagger/ # Corrections HG-DAgger par goal (G2-G5)
-├── models/
-│ ├── bc_model_seed42.pt # Modele baseline (G1 seul)
-│ └── bc_model_multigoal_seed42.pt # Modele multi-goal (G1 + DAgger G2-G5)
-├── results/
-│ └── evaluation_G*.csv # Resultats detailles par goal
-├── scripts/
-│ ├── train_bc.py # Entrainement mono-goal
-│ ├── train_bc_multigoal.py # Entrainement multi-goal (fusion)
-│ ├── run_evaluation.sh # Evaluation quantitative automatisee
-│ ├── summarize_evaluation.py
-│ └── generate_report_charts.py # Regenere les graphiques de ce README
-├── media/images/ # Figures utilisees dans ce README
-├── media/videos/
-├── .gitignore
-└── README.md
 
+```text
+ImitaNav
+  ros2_ws/src
+    create3_il                    Package ROS2 : collecte, entrainement, eval
+    create3_lidar_description     Create 3 + LiDAR (URDF/SDF)
+  config
+  data
+    processed/dataset.npz         Dataset G1 original
+    dagger                        Corrections HG-DAgger par goal (G2-G5)
+  models
+    bc_model_seed42.pt            Modele baseline (G1 seul)
+    bc_model_multigoal_seed42.pt  Modele multi-goal (G1 + DAgger G2-G5)
+  results
+    evaluation_G1.csv ... G5.csv  Resultats detailles par goal
+  scripts
+    train_bc.py                   Entrainement mono-goal
+    train_bc_multigoal.py         Entrainement multi-goal (fusion)
+    run_evaluation.sh             Evaluation quantitative automatisee
+    summarize_evaluation.py
+    generate_report_charts.py     Regenere les graphiques de ce README
+  media
+    images                        Figures utilisees dans ce README
+    videos
+  README.md
+```
 
 ---
 
@@ -154,9 +151,3 @@ ros2 param set /motion_control safety_override full
 ./scripts/run_evaluation.sh 10 G1        # repeter pour G2 G3 G4 G5
 python3 scripts/summarize_evaluation.py results/evaluation_G1.csv
 ```
-
----
-
-## Remerciements
-
-Structure de dépôt inspirée de [tomasvr/turtlebot3_drlnav](https://github.com/tomasvr/turtlebot3_drlnav).
