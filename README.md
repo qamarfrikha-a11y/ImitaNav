@@ -12,6 +12,7 @@ navigation autonome.
 - [Résultats](#résultats)
 - [Limites connues](#limites-connues)
 - [Installation et utilisation](#installation-et-utilisation)
+- [Prochaines étapes](#prochaines-étapes)
 
 ## Architecture
 
@@ -49,26 +50,6 @@ environnement, en combinant :
    la position réelle du robot plutôt que sur l'odométrie, sujette à dérive)
 
 ## Méthodologie
-### Vue d'ensemble de l'environnement multi-goal
-
-![Environnement avec les 5 goals](report_assets/environnement_5_goals.png)
-
-*Les 5 objectifs dans l'environnement en L : G1 (orange), G2 (vert),
-G3 (violet), G4 (bleu), G5 (jaune). Le robot est visible avec son
-balayage LiDAR, positionné entre G4 et le spawn. Notez la proximité
-de G2 et G4 avec des obstacles fixes, expliquant en partie leur taux
-de réussite plus faible (50 % et 66.7 %) comparé à G5, proche du
-spawn et dégagé (100 %).*
-### Vue d'ensemble de l'environnement multi-goal
-
-![Environnement avec les 5 goals](report_assets/environnement_5_goals.png)
-
-*Les 5 objectifs dans l'environnement en L : G1 (orange), G2 (vert),
-G3 (violet), G4 (bleu), G5 (jaune). Le robot est visible avec son
-balayage LiDAR, positionne entre G4 et le spawn. Notez la proximite
-de G2 et G4 avec des obstacles fixes, expliquant en partie leur taux
-de reussite plus faible (50 % et 66.7 %) compare a G5, proche du
-spawn et degage (100 %).*
 
 ### Goals évalués
 
@@ -199,4 +180,12 @@ ros2 topic pub --once /goal_pose geometry_msgs/msg/PoseStamped \
   "{pose: {position: {x: 6.0, y: 0.0, z: 0.0}}}"
 ```
 
+## Prochaines étapes
 
+- [ ] Comparaison quantitative avec Nav2 sur les 5 mêmes goals
+      (package `nav2_comparison`)
+- [ ] Sur-échantillonnage de G2–G5 pour rééquilibrer le dataset
+      d'entraînement multi-goal
+- [ ] Extension de la détection de sécurité aux collisions latérales
+- [ ] Rédaction de l'analyse comparative finale (BC seul / BC+DAgger / Nav2)
+      pour le rapport de stage
