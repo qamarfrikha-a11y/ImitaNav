@@ -13,7 +13,9 @@ Ce projet implémente un système de **navigation autonome multi-objectif** pour
 
 Le robot apprend à naviguer vers **5 objectifs distincts** dans un environnement simulé sous **ROS 2** et **Gazebo**, à partir d'un dataset de démonstrations par Behavioral Cloning, affiné par des sessions interactives de **HG-DAgger** ciblées sur chaque nouvel objectif.
 
-<img src="media/images/robot_create3.png" width="350" alt="Robot Create 3"/>
+<img src="media/images/environnement_5_goals.png" width="350" alt="Environnement multi-goal"/>
+
+*Les 5 objectifs dans l'environnement en L : G1 (orange), G2 (vert), G3 (violet), G4 (bleu/robot), G5 (jaune, partiellement masque).*
 
 ### 🎯 Objectifs
 
@@ -71,12 +73,6 @@ flowchart TD
 ### Répartition des issues par goal
 
 <img src="media/images/collision_timeout_breakdown.png" width="500" alt="Repartition collision/timeout"/>
-
----
-
-## 🎬 Vidéo de démonstration
-
-▶️ [**Navigation multi-goal**](media/videos/multi_goal.mp4)
 
 ---
 
