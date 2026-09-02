@@ -1,0 +1,4 @@
+trial_id,success,blocking_collision,minor_contact,timeout,time_s,trajectory_length_m,angular_std,safety_triggers
+1,0,0,1,1,160.0,17.826,1.108,39
+2,0,0,1,1,160.0,39.865,0.6026,36
+3,0,0,1,1,160.1,19.09,0.4408,3
