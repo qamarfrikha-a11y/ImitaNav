@@ -13,11 +13,8 @@ venv/
 .venv/
 
 # Large datasets
-data/raw/*.npy
 data/raw_buggy_backup/*.npy
-data/dagger/*.npy
 data/processed/backups/
-data/processed/dataset.npz
 
 # Trained models
 models/*.pt
